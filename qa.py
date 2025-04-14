@@ -4,9 +4,10 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_openai import OpenAI
 from src import config
+import streamlit as st
 
-# Set OpenAI API key
-openai_api_key = config.OPEN_API_KEY  # Keep this secure in production
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+#openai_api_key = config.OPEN_API_KEY  # Keep this secure in production
 
 # Initialize the embedding model
 embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
