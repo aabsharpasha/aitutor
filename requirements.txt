@@ -4,7 +4,8 @@ langchain-core==0.1.49
 sentence-transformers==2.2.2
 huggingface_hub==0.20.3
 chromadb==0.4.24
-pymupdf==1.23.1
+#pymupdf==1.23.1
+pymupdf==1.22.3
 python-dotenv==1.0.1
 tqdm==4.66.2
 #openai==0.27.0
