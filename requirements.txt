@@ -11,3 +11,4 @@ tqdm==4.66.2
 streamlit==1.24.0
 langchain-openai
 
+
