@@ -21,20 +21,24 @@ if __name__ == "__main__":
     # print("✅ Done. Embeddings stored.")
     
     
+    all_documents = []
+
     for filename in os.listdir(pdf_dir):
         if filename.endswith(".pdf"):
-           pdf_path = os.path.join(pdf_dir, filename)
-           print(f"📘 Extracting text from: {filename}")
-           text = extract_text_from_pdf(pdf_path)
+            pdf_path = os.path.join(pdf_dir, filename)
+            print(f"📘 Extracting text from: {filename}")
+            text = extract_text_from_pdf(pdf_path)
 
-           print("✂️ Splitting text into chunks...")
-           documents = split_text(text)
+            print("✂️ Splitting text into chunks...")
+            documents = split_text(text)
 
-           print("📦 Storing in vector database...")
-           # Optional: Add metadata like source filename
-           for doc in documents:
-               doc.metadata = {"source": filename}
+            # Add metadata to each chunk
+            for doc in documents:
+                doc.metadata = {"source": filename}
 
-           store_in_vector_db(documents, chroma_db_dir, embedding_model)
+            all_documents.extend(documents)  # collect all
 
-           print(f"✅ Done: {filename}")
+    print("📦 Storing ALL documents in vector database...")
+    store_in_vector_db(all_documents, chroma_db_dir, embedding_model)
+    print("✅ All PDFs processed and stored.")
+
