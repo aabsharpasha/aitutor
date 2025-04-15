@@ -1,1 +1,1 @@
-libsqlite3-dev
+libsqlite3-dev zlib1g-dev
