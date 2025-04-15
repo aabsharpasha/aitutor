@@ -123,8 +123,8 @@ def run_streamlit_app():
                 st.markdown("---")
 
 
-            with st.expander("🧠 Final Prompt Sent to LLM"):
-                st.code(result["final_prompt"], language="markdown")
+            #with st.expander("🧠 Final Prompt Sent to LLM"):
+            #   st.code(result["final_prompt"], language="markdown")
                 
             with st.expander("📚 Sources"):
                 for src in result.get("sources", []):
