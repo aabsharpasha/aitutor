@@ -1,7 +1,6 @@
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
 
 def split_text(text, chunk_size=1000, chunk_overlap=200):
     splitter = RecursiveCharacterTextSplitter(
@@ -13,10 +12,11 @@ def split_text(text, chunk_size=1000, chunk_overlap=200):
 
 def store_in_vector_db(docs, persist_dir, model_name):
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
-    vectordb = Chroma.from_documents(
+
+    vectordb = FAISS.from_documents(
         documents=docs,
-        embedding=embeddings,
-        persist_directory=persist_dir
+        embedding=embeddings
     )
-    vectordb.persist()
+
+    FAISS.save_local(vectordb, persist_dir)
     return vectordb

@@ -1,27 +1,45 @@
 import streamlit as st
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.chains import RetrievalQA
 from langchain_openai import OpenAI
+
+import os
+import pickle
 from src import config
+
+
+def load_vector_db():
+    embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    persist_dir = config.CHROMA_DB_DIR  # Reusing the same path for FAISS
+
+    # Check if the index file exists
+    faiss_index_path = os.path.join(persist_dir, "index.faiss")
+    if not os.path.exists(faiss_index_path):
+        raise FileNotFoundError(f"FAISS index file not found in directory: {persist_dir}")
+
+    # Loading FAISS index
+    db = FAISS.load_local(persist_dir, embedding_model, allow_dangerous_deserialization=True)
+    return db
+
+# Load once per session
+vector_db = load_vector_db()    
+
+
+
 
 # Load API key securely from Streamlit secrets
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # Cache the vector DB to avoid reloading on every interaction
-@st.cache_resource
-def load_vector_db():
-    embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return Chroma(
-        persist_directory=config.CHROMA_DB_DIR,
-        embedding_function=embedding_model,
-    )
 
-# Load once per session
-vector_db = load_vector_db()
 
 # Initialize the language model
-llm = OpenAI(temperature=0.5, openai_api_key=openai_api_key)
+#llm = OpenAI(temperature=0.5, openai_api_key=openai_api_key)
+llm = OpenAI(
+    temperature=0.7,
+    api_key=openai_api_key,
+    model="gpt-3.5-turbo-instruct"  # or another model of your choice
+)
 
 # Function to ask a rephrased question
 def ask_question(query, length, style, level):
