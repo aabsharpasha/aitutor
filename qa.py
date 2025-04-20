@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_openai import OpenAI
+from langchain_openai import ChatOpenAI
 
 import os
 import pickle
@@ -35,10 +35,10 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # Initialize the language model
 #llm = OpenAI(temperature=0.5, openai_api_key=openai_api_key)
-llm = OpenAI(
-    temperature=0.7,
+llm = ChatOpenAI(
+    temperature=0.4,
     api_key=openai_api_key,
-    model="gpt-3.5-turbo-instruct"  # or another model of your choice
+    model="gpt-4.1"
 )
 
 # Function to ask a rephrased question
@@ -46,6 +46,7 @@ def ask_question(query, length, style, level):
     try:
         retriever = vector_db.as_retriever()
         docs = retriever.get_relevant_documents(query)
+        docs = docs[:3]
 
         # Build context and collect sources
         context_parts = []
@@ -61,15 +62,52 @@ def ask_question(query, length, style, level):
         context = "\n\n".join(context_parts)
         unique_sources = list(set(sources))  # To avoid duplicates
 
-        full_prompt = (
-            f"You are an AI tutor. Based on the following context, answer the question "
-            f"in your own words, using a different style than the book. "
-            f"{'Write a concise explanation (under 100 words)' if length == 'Short' else 'Write a detailed explanation (at least 300 words)'} in a {style.lower()} style, "
-            f"suitable for a {level.lower()} learner.\n\n"
-            f"Context:\n{context}\n\n"
-            f"Question:\n{query}"
-        )
+        # full_prompt = (
+        #     f"You are an AI tutor. Based on the following context, answer the question "
+        #     f"in your own words, using a different style than the book. "
+        #     f"{'Write a concise explanation (under 100 words)' if length == 'Short' else 'Write a detailed explanation (at least 300 words)'} in a {style.lower()} style, "
+        #     f"suitable for a {level.lower()} learner.\n\n"
+        #     f"Context:\n{context}\n\n"
+        #     f"Question:\n{query}"
+        # )
+        
+        if length == "Very Short":
+            word_instruction = "Write an extremely concise explanation in your own words. Limit your answer strictly to around 30 words."
+        elif length == "Short":
+            word_instruction = "Write a concise explanation in your own words. Limit your answer strictly to around 80 words."
+        else:
+            word_instruction = "Write a detailed explanation in your own words. Limit your answer strictly to approximately 200 words."
 
+        if style == "Concise":
+             style_instruction = (
+                "Provide a clear and brief explanation without unnecessary elaboration. "
+                "Keep it straightforward and to the point."
+            )
+        elif style == "With Examples":
+            style_instruction = (
+                "You MUST include at least one clear, relevant example. "
+                "Start the example with the word 'Example:' in new line followed by a detailed explanation. "
+                "If the context lacks examples, create your own. "
+                "Not including an example will result in an incomplete answer."
+            )
+        elif style == "Bullet Points":
+            style_instruction = (
+                "Present the explanation using bullet points for clarity. "
+                "Ensure the explanation stays within the word limit of the response. "
+            )
+
+        full_prompt = (
+            f"IMPORTANT: You MUST follow ALL instructions below exactly. "
+            #f"Failure to include examples in the answer whenever requested will make the response incorrect.\n\n"
+            f"You are a Virtual Subject Expert. Based on the following context, answer the question "
+            f"in your own words, using a different style than the book. "
+            f"{word_instruction} {style_instruction} "
+            f"The explanation should be suitable for a {level.lower()} learner. "
+            f"Strictly adhere to the word limit and example instructions.\n\n"
+            f"Context:\n{context}\n\n"
+            f"Question:\n{query}\n\n"
+            #f"IMPORTANT: Your answer MUST include the example as instructed above."
+        )
 
         response = llm.invoke(full_prompt)
 
@@ -91,13 +129,13 @@ def ask_question(query, length, style, level):
 def run_streamlit_app():
     st.title("📘 AI Tutor - Ask Your Questions")
 
-    question = st.text_input("❓ Ask a question about the chapter")
+    question = st.text_area("❓ Ask a question about the chapter", height=100)
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        length = st.selectbox("Select Answer Type:", ["Short", "Long"])
+        length = st.selectbox("Select Answer Type:", ["Very Short","Short", "Long"])
     with col2:
-        style = st.selectbox("Select Answer Style:", ["Elaborated", "With Examples", "Bullet Points"])
+        style = st.selectbox("Select Answer Style:", ["Concise", "With Examples", "Bullet Points"])
     with col3:
         level = st.selectbox("Understanding Level:", ["Beginner", "Intermediate", "Advanced"])
 
@@ -108,7 +146,18 @@ def run_streamlit_app():
             st.error(f"🚨 Error: {result['error']}")
         else:
             st.subheader("📄 Answer")
-            st.write(result["llm_response"])
+            
+            response = result["llm_response"].strip()
+            
+            if response.lower().startswith("answer:"):
+                response = response[len("Answer:"):].lstrip()
+            
+            st.markdown(response)
+            
+            word_count = len(response.split())
+            st.markdown(f"**Word Count:** {word_count}")
+
+
 
             with st.expander("🔍 Retrieved Context with Sources"):
               chunks = result["retrieved_docs"].split("[Source: ")
@@ -124,7 +173,7 @@ def run_streamlit_app():
 
 
             #with st.expander("🧠 Final Prompt Sent to LLM"):
-            #   st.code(result["final_prompt"], language="markdown")
+            #  st.code(result["final_prompt"], language="markdown")
                 
             with st.expander("📚 Sources"):
                 for src in result.get("sources", []):
