@@ -36,7 +36,7 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 # Initialize the language model
 #llm = OpenAI(temperature=0.5, openai_api_key=openai_api_key)
 llm = ChatOpenAI(
-    temperature=0.4,
+    temperature=0.7,
     api_key=openai_api_key,
     model="gpt-4.1"
 )
@@ -97,8 +97,10 @@ def ask_question(query, length, style, level):
             )
 
         full_prompt = (
-            f"IMPORTANT: You MUST follow ALL instructions below exactly. "
-            #f"Failure to include examples in the answer whenever requested will make the response incorrect.\n\n"
+            f"IMPORTANT: You MUST follow ALL instructions below exactly.\n"
+            f"IMPORTANT: Read the question carefully and answer ALL parts of the question.\n"
+            f"If the question has more than one part, address EACH part clearly.\n"
+            f"If needed, break your answer into labeled sections to ensure clarity.\n\n"
             f"You are a Virtual Subject Expert. Based on the following context, answer the question "
             f"in your own words, using a different style than the book. "
             f"{word_instruction} {style_instruction} "
@@ -106,8 +108,8 @@ def ask_question(query, length, style, level):
             f"Strictly adhere to the word limit and example instructions.\n\n"
             f"Context:\n{context}\n\n"
             f"Question:\n{query}\n\n"
-            #f"IMPORTANT: Your answer MUST include the example as instructed above."
         )
+
 
         response = llm.invoke(full_prompt)
 
