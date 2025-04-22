@@ -7,9 +7,15 @@ import os
 import pickle
 from src import config
 
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = "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"
+
 
 def load_vector_db():
-    embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    # Correct model name + optional cache folder
+    embedding_model = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        cache_folder="./models"  # optional but recommended
+    )
     persist_dir = config.CHROMA_DB_DIR  # Reusing the same path for FAISS
 
     # Check if the index file exists
