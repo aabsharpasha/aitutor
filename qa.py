@@ -7,7 +7,8 @@ import os
 import pickle
 from src import config
 
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = "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"
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["OPENAI_API_KEY"]
+openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 
 def load_vector_db():
@@ -31,14 +32,6 @@ def load_vector_db():
 vector_db = load_vector_db()    
 
 
-
-
-# Load API key securely from Streamlit secrets
-openai_api_key = st.secrets["OPENAI_API_KEY"]
-
-# Cache the vector DB to avoid reloading on every interaction
-
-
 # Initialize the language model
 #llm = OpenAI(temperature=0.5, openai_api_key=openai_api_key)
 llm = ChatOpenAI(
@@ -52,7 +45,8 @@ def ask_question(query, length, style, level):
     try:
         retriever = vector_db.as_retriever()
         docs = retriever.get_relevant_documents(query)
-        docs = docs[:3]
+        
+        docs = docs[:5]
 
         # Build context and collect sources
         context_parts = []
