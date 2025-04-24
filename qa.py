@@ -41,26 +41,33 @@ llm = ChatOpenAI(
 )
 
 # Function to ask a rephrased question
-def ask_question(query, length, style, level):
+def ask_question(query, length, style, level, selected_books):
     try:
-        retriever = vector_db.as_retriever()
+        retriever = vector_db.as_retriever(search_kwargs={"k": 10})
         docs = retriever.get_relevant_documents(query)
+        #st.write(docs);
+        if selected_books:
+            docs = [doc for doc in docs if doc.metadata.get("source") in selected_books]
+
+        # Sort by priority (lower value = higher priority)
+        docs_sorted = sorted(docs, key=lambda doc: doc.metadata.get("priority", 100))
+
+        # Limit to top 5 docs for context
+        docs_sorted = docs_sorted[:5]
         
-        docs = docs[:5]
 
         # Build context and collect sources
         context_parts = []
         sources = []
 
-        for doc in docs:
+        for doc in docs_sorted:
             source = doc.metadata.get("source", "Unknown Source")
             chunk_text = f"[Source: {source}]\n{doc.page_content.strip()}"
             context_parts.append(chunk_text)
             sources.append(source)
 
-
         context = "\n\n".join(context_parts)
-        unique_sources = list(set(sources))  # To avoid duplicates
+        unique_sources = list(dict.fromkeys(sources))  # Ordered and deduplicated
 
         # full_prompt = (
         #     f"You are an AI tutor. Based on the following context, answer the question "
@@ -110,8 +117,10 @@ def ask_question(query, length, style, level):
             f"Question:\n{query}\n\n"
         )
 
-
-        response = llm.invoke(full_prompt)
+        if (docs_sorted):
+            response = llm.invoke(full_prompt)
+        else:
+            response = "No relevant answer found in the book. Please try a different question.";
 
         if hasattr(response, "content"):
             response = response.content
@@ -132,6 +141,27 @@ def run_streamlit_app():
     st.title("📘 AI Tutor - Ask Your Questions")
 
     question = st.text_area("❓ Ask a question about the chapter", height=100)
+    
+    book_priority_map = {
+        'NCERT Theory Sociology +2 - Chp 2.pdf': 1,
+        'Mcgraw Hill NCERT Compendium - Chp - 2.pdf': 2,
+        'Delhi Government.pdf': 3,
+        'Full Marks AK Bhatnagar Theory - Chp 2.pdf': 4,
+        'Arihant 10 Sample Theory - Chp 2.pdf': 5,
+        'CL Educate Sociology CBSE Study Guide 12 - Chp 2.pdf': 6,
+        'Golden Sociology Theory - Chp 2.pdf': 7,
+        'Gullybaba The Study of Society 11 - Chp - 2.pdf': 8,
+        'Gullybaba Society In India 12 - Chp - 2.pdf': 9,
+        'Anand Kumar 12th Sociology - Chp - 2.pdf': 10,
+        'CBSE notes National Digital library.pdf': 11,
+        'lesy_10204_eContent.pdf': 12
+    }
+    
+    selected_books = st.multiselect(
+        "📚 Select Books to Prioritize (optional):",
+        options=list(book_priority_map.keys()),
+        #default=list(book_priority_map.keys())  # or leave empty for user to choose
+    )
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -142,7 +172,7 @@ def run_streamlit_app():
         level = st.selectbox("Understanding Level:", ["Beginner", "Intermediate", "Advanced"])
 
     if st.button("Get Answer") and question:
-        result = ask_question(question, length, style, level)
+        result = ask_question(question, length, style, level, selected_books)
 
         if "error" in result:
             st.error(f"🚨 Error: {result['error']}")
@@ -174,8 +204,8 @@ def run_streamlit_app():
                 st.markdown("---")
 
 
-            #with st.expander("🧠 Final Prompt Sent to LLM"):
-            #  st.code(result["final_prompt"], language="markdown")
+            with st.expander("🧠 Final Prompt Sent to LLM"):
+             st.code(result["final_prompt"], language="markdown")
                 
             with st.expander("📚 Sources"):
                 for src in result.get("sources", []):
