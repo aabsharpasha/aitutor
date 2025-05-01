@@ -43,9 +43,22 @@ llm = ChatOpenAI(
 # Function to ask a rephrased question
 def ask_question(query, length, style, level, selected_books):
     try:
-        retriever = vector_db.as_retriever(search_kwargs={"k": 10})
+        retriever = vector_db.as_retriever(
+            search_kwargs={"k": 10,
+                           "filter": {"type": "topics"} 
+                           }
+            
+            )
         docs = retriever.get_relevant_documents(query)
-        #st.write(docs);
+        
+        retriever2 = vector_db.as_retriever(
+            search_kwargs={"k": 5,
+                           "filter": {"type": "example"} 
+                           }
+            
+            )
+        docs2 = retriever2.get_relevant_documents(query)
+        #st.write(docs2);
         if selected_books:
             docs = [doc for doc in docs if doc.metadata.get("source") in selected_books]
 
@@ -65,6 +78,13 @@ def ask_question(query, length, style, level, selected_books):
             chunk_text = f"[Source: {source}]\n{doc.page_content.strip()}"
             context_parts.append(chunk_text)
             sources.append(source)
+            
+        for doc2 in docs2:
+            source = doc2.metadata.get("source", "Unknown Source")
+            chunk_text = f"[Source: {source}]\n{doc2.page_content.strip()}"
+            context_parts.append("\nExample Context:\n"+ chunk_text)
+            #sources.append(source)
+
 
         context = "\n\n".join(context_parts)
         unique_sources = list(dict.fromkeys(sources))  # Ordered and deduplicated
@@ -79,11 +99,11 @@ def ask_question(query, length, style, level, selected_books):
         # )
         
         if length == "Very Short":
-            word_instruction = "Write an extremely concise explanation in your own words. Limit your answer strictly to around 30 words."
+            word_instruction = "Write an extremely concise explanation in your own words. Your answer must be at least 30 words and not more than 40 words."
         elif length == "Short":
-            word_instruction = "Write a concise explanation in your own words. Limit your answer strictly to around 80 words."
+            word_instruction = "Write a concise explanation in your own words. Your answer must be at least 80 words and not more than 90 words."
         else:
-            word_instruction = "Write a detailed explanation in your own words. Limit your answer strictly to approximately 200 words."
+            word_instruction = "Write a detailed explanation in your own words. Your response MUST be no fewer than 200 words and MUST NOT exceed 220 words."
 
         if style == "Concise":
              style_instruction = (
@@ -92,10 +112,12 @@ def ask_question(query, length, style, level, selected_books):
             )
         elif style == "With Examples":
             style_instruction = (
+                "Act like a teacher explaining to a student. "
+                "You MUST extract the example strictly from the section titled 'Example Context' in the provided context. "
                 "You MUST include at least one clear, relevant example. "
                 "Start the example with the word 'Example:' in new line followed by a detailed explanation. "
-                "If the context lacks examples, create your own. "
-                "Not including an example will result in an incomplete answer."
+                "The example should be exaplained in your own words. "
+                "Dont' mention the source of the example. "
             )
         elif style == "Bullet Points":
             style_instruction = (
@@ -106,11 +128,11 @@ def ask_question(query, length, style, level, selected_books):
         full_prompt = (
             f"IMPORTANT: You MUST follow ALL instructions below exactly.\n"
             f"IMPORTANT: Read the question carefully and answer ALL parts of the question.\n"
+            f"{word_instruction} {style_instruction} "
             f"If the question has more than one part, address EACH part clearly.\n"
             f"If needed, break your answer into labeled sections to ensure clarity.\n\n"
             f"You are a Virtual Subject Expert. Based on the following context, answer the question "
             f"in your own words, using a different style than the book. "
-            f"{word_instruction} {style_instruction} "
             f"The explanation should be suitable for a {level.lower()} learner. "
             f"Strictly adhere to the word limit and example instructions.\n\n"
             f"Context:\n{context}\n\n"
