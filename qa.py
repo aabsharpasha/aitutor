@@ -41,7 +41,7 @@ llm = ChatOpenAI(
 )
 
 # Function to ask a rephrased question
-def ask_question(query, length, style, level, selected_books):
+def ask_question(query, length, style, level, selected_books, lang = 'English'):
     try:
         retriever = vector_db.as_retriever(
             search_kwargs={"k": 10,
@@ -97,7 +97,7 @@ def ask_question(query, length, style, level, selected_books):
         #     f"Context:\n{context}\n\n"
         #     f"Question:\n{query}"
         # )
-        
+        lang_instruction = '';
         if length == "Very Short":
             word_instruction = "Write an extremely concise explanation in your own words. Your answer must be at least 30 words and not more than 40 words."
         elif length == "Short":
@@ -124,13 +124,18 @@ def ask_question(query, length, style, level, selected_books):
                 "Present the explanation using bullet points for clarity. "
                 "Ensure the explanation stays within the word limit of the response. "
             )
+            
+        if lang == "Hinglish":
+             lang_instruction = (
+                "Please provide output in Hinglish."
+            )
 
         full_prompt = (
             f"IMPORTANT: You MUST follow ALL instructions below exactly.\n"
             f"IMPORTANT: Read the question carefully and answer ALL parts of the question.\n"
-            f"{word_instruction} {style_instruction} "
+            f"{word_instruction} {style_instruction} {lang_instruction}\n\n"
             f"If the question has more than one part, address EACH part clearly.\n"
-            f"If needed, break your answer into labeled sections to ensure clarity.\n\n"
+            f"If needed, break your answer into labeled sections including heading and subheading to ensure clarity.\n\n"
             f"You are a Virtual Subject Expert. Based on the following context, answer the question "
             f"in your own words, using a different style than the book. "
             f"The explanation should be suitable for a {level.lower()} learner. "
@@ -185,16 +190,18 @@ def run_streamlit_app():
         #default=list(book_priority_map.keys())  # or leave empty for user to choose
     )
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 , col4 = st.columns(4)
     with col1:
         length = st.selectbox("Select Answer Type:", ["Very Short","Short", "Long"])
     with col2:
         style = st.selectbox("Select Answer Style:", ["Concise", "With Examples", "Bullet Points"])
     with col3:
         level = st.selectbox("Understanding Level:", ["Beginner", "Intermediate", "Advanced"])
+    with col4:
+        lang = st.selectbox("Choose Language", ["English", "Hinglish"])
 
     if st.button("Get Answer") and question:
-        result = ask_question(question, length, style, level, selected_books)
+        result = ask_question(question, length, style, level, selected_books, lang)
 
         if "error" in result:
             st.error(f"🚨 Error: {result['error']}")
