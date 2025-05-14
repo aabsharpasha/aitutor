@@ -54,7 +54,7 @@ def convertToSpeech(presponse, selected_language):
     )
 
     # Save to temp file
-    audio_file = f"{uuid.uuid4()}.mp3"
+    audio_file = 'audio/'+f"{uuid.uuid4()}.mp3"
     with open(audio_file, "wb") as f:
         f.write(result["AudioStream"].read())
 
