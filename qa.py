@@ -193,9 +193,18 @@ def ask_question(query, length, style, level, selected_books, lang='English'):
 
     except Exception as e:
         return {"error": str(e)}
-
   
 def run_streamlit_app():
+    # if "response" not in st.session_state:
+    #     st.session_state.response = ""
+
+    # if "audio_bytes" not in st.session_state:
+    #     st.session_state.audio_bytes = None
+
+    # if "audio_generated" not in st.session_state:
+    #     st.session_state.audio_generated = False
+
+
     st.title("📘 AI Tutor - Ask Your Questions")
 
     question = st.text_area("❓ Ask a question about the chapter", height=100)
@@ -238,17 +247,32 @@ def run_streamlit_app():
 
         if "error" in result:
             st.error(f"🚨 Error: {result['error']}")
+            st.session_state.response = ""
+            st.session_state.audio_bytes = None
         else:
-            st.subheader("📘 AI Generated Answer:")
-            st.write(result["llm_response"])
-
             st.session_state.response = result["llm_response"]
-            
-            st.button("🔊 Convert to Speech")
-            handle_speech_button(result["llm_response"], lang)
+            st.session_state.audio_bytes = None  # Clear old audio when new answer comes
 
+    # Display the answer if available
+    if st.session_state.get("response"):
+        st.subheader("📘 AI Generated Answer:")
+        st.write(st.session_state["response"])
+        st.session_state.audio_generated = False
+        st.session_state.audio_bytes = None
+
+        # Button to generate speech
+        if not st.session_state.audio_generated and st.button("🔊 Convert to Speech"):
+            handle_speech_button(st.session_state.response, lang)
+            st.session_state.audio_generated = True
+
+                
+
+    # Append audio below the answer if generated
     if st.session_state.get("audio_bytes"):
         st.audio(st.session_state["audio_bytes"], format="audio/mp3")
+
+
+
 
 
 run_streamlit_app()
