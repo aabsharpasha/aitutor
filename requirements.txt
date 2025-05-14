@@ -11,5 +11,7 @@ tqdm==4.66.2
 streamlit==1.24.0
 langchain-openai
 faiss-cpu==1.10.0
+boto3
+uuid
 
 
